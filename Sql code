@@ -1,0 +1,78 @@
+DROP DATABASE IF EXISTS Spotify;
+
+-- Создаём БД и используем
+CREATE DATABASE IF NOT EXISTS Spotify;
+USE Spotify;
+
+-- Таблица альбомов
+CREATE TABLE albums (
+    album_id INT AUTO_INCREMENT PRIMARY KEY,
+    album_name VARCHAR(255) NOT NULL UNIQUE
+);
+-- Индекс на имя альбома для быстрых поисков
+CREATE INDEX idx_album_name ON albums(album_name);
+
+-- Таблица жанров
+CREATE TABLE genres (
+    genre_id INT AUTO_INCREMENT PRIMARY KEY,
+    genre_name VARCHAR(255) NOT NULL UNIQUE
+);
+-- Индекс на жанр
+CREATE INDEX idx_genre_name ON genres(genre_name);
+
+-- Таблица артистов
+CREATE TABLE artists (
+    artist_id INT AUTO_INCREMENT PRIMARY KEY,
+    artist_name VARCHAR(255) NOT NULL UNIQUE
+);
+-- Индекс на имя артиста
+CREATE INDEX idx_artist_name ON artists(artist_name);
+
+-- Таблица треков (основная, с оригинальным track_id как PK)
+CREATE TABLE tracks (
+    track_id VARCHAR(255) PRIMARY KEY,
+    track_name VARCHAR(255) NOT NULL,
+    album_id INT,
+    genre_id INT,
+    popularity INT,
+    duration_ms INT,
+    explicit BOOLEAN,
+    FOREIGN KEY (album_id) REFERENCES albums(album_id),
+    FOREIGN KEY (genre_id) REFERENCES genres(genre_id)
+);
+-- Индексы для оптимизации: на popularity (для топов), duration (для сортировок), explicit
+CREATE INDEX idx_track_popularity ON tracks(popularity);
+CREATE INDEX idx_track_duration ON tracks(duration_ms);
+CREATE INDEX idx_track_explicit ON tracks(explicit);
+
+-- Таблица атрибутов трека (все метрики из CSV)
+CREATE TABLE track_attributes (
+    track_id VARCHAR(255) PRIMARY KEY,
+    danceability FLOAT,
+    energy FLOAT,
+    loudness FLOAT,
+    mode INT,
+    speechiness FLOAT,
+    acousticness FLOAT,
+    instrumentalness FLOAT,
+    liveness FLOAT,
+    valence FLOAT,
+    tempo FLOAT,
+    time_signature INT,
+    FOREIGN KEY (track_id) REFERENCES tracks(track_id)
+);
+-- Индексы на часто используемые атрибуты (для аггрегаций по жанрам/артистам)
+CREATE INDEX idx_attr_danceability ON track_attributes(danceability);
+CREATE INDEX idx_attr_energy ON track_attributes(energy);
+CREATE INDEX idx_attr_tempo ON track_attributes(tempo);
+
+-- Связующая таблица треков и артистов (многие-ко-многим)
+CREATE TABLE track_artists (
+    track_id VARCHAR(255),
+    artist_id INT,
+    PRIMARY KEY(track_id, artist_id),
+    FOREIGN KEY(track_id) REFERENCES tracks(track_id),
+    FOREIGN KEY(artist_id) REFERENCES artists(artist_id)
+);
+-- Индекс на artist_id для поиска по артистам
+CREATE INDEX idx_track_artist_id ON track_artists(artist_id);
